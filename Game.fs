@@ -310,45 +310,59 @@ let oneGame playerStrategy gameState =
     // TODO: print the first card in the dealer's hand to the screen, because the Player can see
     // one card from the dealer's hand in order to make their decisions.
     printfn "Dealer is showing: %A" (cardToString gameState.dealer.Head)
+    let score1 = handTotal gameState.dealer
+    let score2 = handTotal gameState.player.activeHands.Head.cards
 
-    printfn "Player's turn"
-    // TODO: play the game! First the player gets their turn. The dealer then takes their turn,
-    // using the state of the game after the player's turn finished.
-    let gameState2 = playerTurn playerStrategy gameState
+    
+    let wins = 0
+    let losses = 0
+    let draws = 0
+    
+    if score1 = 21 && score2 < 21 then
+        {playerWins = wins; dealerWins = losses + 1; draws = draws}
 
-    printfn "\nDealer's turn"
-    let gameState3 = dealerTurn gameState2
+    else if score1 = 21 && score1 = score2 then
+        {playerWins = wins; dealerWins = losses; draws = draws + 1}
 
-    // TODO: determine the winner(s)! For each of the player's hands, determine if that hand is a 
-    // win, loss, or draw. Accumulate (!!) the sum total of wins, losses, and draws, accounting for doubled-down
-    // hands, which gets 2 wins, 2 losses, or 1 draw
-    let rec oneGame' gameState wins losses draws =
-        if gameState.player.activeHands.IsEmpty then
-            let outcome = playerOutcome (gameState.player.activeHands.Head.cards) gameState.dealer
-            let increment =
-                if gameState.player.activeHands.Head.doubled = false then
-                    1
-                else
-                    2
+    else
+        printfn "Player's turn"
+        // TODO: play the game! First the player gets their turn. The dealer then takes their turn,
+        // using the state of the game after the player's turn finished.
+        let gameState2 = playerTurn playerStrategy gameState
 
-            match outcome with
-            | Win -> oneGame' (moveActiveHand gameState) (wins + increment) losses draws
-            | Lose -> oneGame' (moveActiveHand gameState) wins (losses + increment) draws
-            | Draw -> oneGame' (moveActiveHand gameState) wins losses (draws + 1)
-        else
-            wins, losses, draws
+        printfn "\nDealer's turn"
+        let gameState3 = dealerTurn gameState2
 
-    let result = oneGame' gameState3 0 0 0
-    let wins, losses, draws = result
+        // TODO: determine the winner(s)! For each of the player's hands, determine if that hand is a 
+        // win, loss, or draw. Accumulate (!!) the sum total of wins, losses, and draws, accounting for doubled-down
+        // hands, which gets 2 wins, 2 losses, or 1 draw
+        let rec oneGame' gameState wins losses draws =
+            if gameState.player.activeHands.IsEmpty then
+                let outcome = playerOutcome (gameState.player.activeHands.Head.cards) gameState.dealer
+                let increment =
+                    if gameState.player.activeHands.Head.doubled = false then
+                        1
+                    else
+                        2
 
-    // The player wins a hand if they did not bust (score <= 21) AND EITHER:
-    // - the dealer busts; or
-    // - player's score > dealer's score
-    // If neither side busts and they have the same score, the result is a draw.
+                match outcome with
+                | Win -> oneGame' (moveActiveHand gameState) (wins + increment) losses draws
+                | Lose -> oneGame' (moveActiveHand gameState) wins (losses + increment) draws
+                | Draw -> oneGame' (moveActiveHand gameState) wins losses (draws + 1)
+            else
+                wins, losses, draws
 
-    // TODO: this is a "blank" GameLog. Return something more appropriate for each of the outcomes
-    // described above.
-    {playerWins = wins; dealerWins = losses; draws = draws}
+        let result = oneGame' gameState3 0 0 0
+        let wins, losses, draws = result
+
+        // The player wins a hand if they did not bust (score <= 21) AND EITHER:
+        // - the dealer busts; or
+        // - player's score > dealer's score
+        // If neither side busts and they have the same score, the result is a draw.
+
+        // TODO: this is a "blank" GameLog. Return something more appropriate for each of the outcomes
+        // described above.
+        {playerWins = wins; dealerWins = losses; draws = draws}
 
 
 // Plays n games using the given playerStrategy, and returns the combined game log.
