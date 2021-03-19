@@ -219,8 +219,6 @@ let hit handOwner gameState =
                    player = updatedPlayer }
 
         
-
-
 // Take the dealer's turn by repeatedly taking a single action, hit or stay, until 
 // the dealer busts or stays.
 let rec dealerTurn gameState =
@@ -272,34 +270,77 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
         // Create a new game state based on that action. Recurse if the player can take another action 
         // after their chosen one, or return the game state if they cannot.
         
-        // Remove this when you're ready; it's just so the code compiles.
         printfn "Player's hand: %s" (handToString playerState.activeHands.Head.cards) 
         let playerAction = playerStrategy gameState
 
         match playerAction with
         |Hit -> gameState |> hit Player |> playerTurn playerStrategy
-        |DoubleDown ->  playerTurn playerStrategy gameState
+        |DoubleDown -> playerTurn playerStrategy gameState
         |Split ->  playerTurn playerStrategy gameState
         |_ -> gameState
-                        
+
+
+// Moves the player's first active hand to their inactive hands and returns a new gamestate.
+let moveActiveHand gameState = 
+    let newActiveHand = gameState.player.activeHands.Tail 
+    let updatedPlayer = { activeHands = newActiveHand
+                          finishedHands = gameState.player.activeHands.Head :: gameState.player.activeHands.Tail }
+
+    {gameState with 
+               deck = gameState.deck
+               player = updatedPlayer
+               dealer = gameState.dealer }
+
+
+// Classifies a player's hand as a Win,Lose,or Draw compared to the dealer's hand              
+let playerOutcome playerHand dealerHand = 
+    let playerTotal = handTotal playerHand
+    let dealerTotal = handTotal dealerHand
+
+    if (playerTotal > dealerTotal) && (playerTotal <= 21 || dealerTotal > 21) then
+        Win
+    else if (dealerTotal > playerTotal) && dealerTotal <= 21 then
+        Lose
+    else
+        Draw
 
 
 // Plays one game with the given player strategy. Returns a GameLog recording the winner of the game.
 let oneGame playerStrategy gameState =
     // TODO: print the first card in the dealer's hand to the screen, because the Player can see
     // one card from the dealer's hand in order to make their decisions.
-    printfn "Dealer is showing: %A" 0 // fix this line
+    printfn "Dealer is showing: %A" (cardToString gameState.dealer.Head)
 
     printfn "Player's turn"
     // TODO: play the game! First the player gets their turn. The dealer then takes their turn,
     // using the state of the game after the player's turn finished.
+    let gameState2 = playerTurn playerStrategy gameState
 
     printfn "\nDealer's turn"
-    
+    let gameState3 = dealerTurn gameState2
+
     // TODO: determine the winner(s)! For each of the player's hands, determine if that hand is a 
     // win, loss, or draw. Accumulate (!!) the sum total of wins, losses, and draws, accounting for doubled-down
     // hands, which gets 2 wins, 2 losses, or 1 draw
-    
+    let rec oneGame' gameState wins losses draws =
+        if gameState.player.activeHands.IsEmpty then
+            let outcome = playerOutcome (gameState.player.activeHands.Head.cards) gameState.dealer
+            let increment =
+                if gameState.player.activeHands.Head.doubled = false then
+                    1
+                else
+                    2
+
+            match outcome with
+            | Win -> oneGame' (moveActiveHand gameState) (wins + increment) losses draws
+            | Lose -> oneGame' (moveActiveHand gameState) wins (losses + increment) draws
+            | Draw -> oneGame' (moveActiveHand gameState) wins losses (draws + 1)
+        else
+            wins, losses, draws
+
+    let result = oneGame' gameState3 0 0 0
+    let wins, losses, draws = result
+
     // The player wins a hand if they did not bust (score <= 21) AND EITHER:
     // - the dealer busts; or
     // - player's score > dealer's score
@@ -307,7 +348,7 @@ let oneGame playerStrategy gameState =
 
     // TODO: this is a "blank" GameLog. Return something more appropriate for each of the outcomes
     // described above.
-    {playerWins = 0; dealerWins = 0; draws = 0}
+    {playerWins = wins; dealerWins = losses; draws = draws}
 
 
 // Plays n games using the given playerStrategy, and returns the combined game log.
