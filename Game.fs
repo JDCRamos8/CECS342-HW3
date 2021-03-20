@@ -245,7 +245,7 @@ let rec dealerTurn gameState =
         // The dealer does not get to take another action.
         printfn "Dealer must stay"
         gameState
-        
+
 
 // Take the player's turn by repeatedly taking a single action until they bust or stay.
 let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameState) =
@@ -269,23 +269,41 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
         // TODO: print the player's first active hand. Call the strategy to get a PlayerAction.
         // Create a new game state based on that action. Recurse if the player can take another action 
         // after their chosen one, or return the game state if they cannot.
+        let player = playerState.activeHands.Head.cards
+        let score = handTotal player
         
-        printfn "Player's hand: %s" (handToString playerState.activeHands.Head.cards) 
+        printfn "Player's hand: %s; %d points" (handToString player) score
+
         let playerAction = playerStrategy gameState
 
         match playerAction with
         |Hit -> gameState |> hit Player |> playerTurn playerStrategy
         |DoubleDown -> 
             let updatedActiveHand = {playerState.activeHands.Head with
-                                        cards = playerState.activeHands.Head.cards
-                                        doubled = true }
+                                                                  cards = playerState.activeHands.Head.cards
+                                                                  doubled = true }
             let updatedPlayerHands = {playerState with
-                                        activeHands = updatedActiveHand :: playerState.activeHands.Tail
-                                        finishedHands = playerState.finishedHands }
+                                                  activeHands = updatedActiveHand :: playerState.activeHands.Tail
+                                                  finishedHands = playerState.finishedHands }
             
             playerTurn playerStrategy {gameState with 
-                                            player = updatedPlayerHands }
-        |Split ->  playerTurn playerStrategy gameState
+                                                 player = updatedPlayerHands }
+        |Split -> 
+            let playerHand1 =
+                {playerState.activeHands.Head with
+                                              cards = playerState.activeHands.Head.cards.Head :: [] }
+
+            let playerHand2 =
+                {playerState.activeHands.Head with
+                                              cards = playerState.activeHands.Head.cards.Tail.Head :: [] }
+
+            let updatedPlayerHands = {playerState with
+                                                  activeHands = playerHand1 :: playerHand2 :: playerState.activeHands.Tail
+                                                  finishedHands = playerState.finishedHands }
+
+            playerTurn playerStrategy {gameState with 
+                                                 player = updatedPlayerHands }
+
         |_ -> gameState
 
 
@@ -293,7 +311,7 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
 let moveActiveHand gameState = 
     let newActiveHand = gameState.player.activeHands.Tail 
     let updatedPlayer = { activeHands = newActiveHand
-                          finishedHands = gameState.player.activeHands.Head :: gameState.player.activeHands.Tail }
+                          finishedHands = gameState.player.activeHands.Head :: gameState.player.finishedHands }
 
     {gameState with 
                deck = gameState.deck
@@ -356,9 +374,9 @@ let oneGame playerStrategy gameState =
                 
                 printfn "RESULT: %A" outcome
                 match outcome with
-                | Win -> oneGame' (moveActiveHand gameState) (wins + increment) losses draws
-                | Lose -> oneGame' (moveActiveHand gameState) wins (losses + increment) draws
-                | Draw -> oneGame' (moveActiveHand gameState) wins losses (draws + 1)
+                | Win -> oneGame' (playerTurn playerStrategy (moveActiveHand gameState)) (wins + increment) losses draws
+                | Lose -> oneGame' (playerTurn playerStrategy (moveActiveHand gameState)) wins (losses + increment) draws
+                | Draw -> oneGame' (playerTurn playerStrategy (moveActiveHand gameState)) wins losses (draws + 1)
             else
                 wins, losses, draws
 
@@ -478,11 +496,16 @@ let main argv =
     //manyGames 10 coinFlipPlayerStrategy
     //|> printfn "%A"
 
-    makeDeck()
-    |> shuffleDeck
-    |> newGame
-    |> oneGame interactivePlayerStrategy
-    |> printfn "%A"
+    //makeDeck()
+    //|> shuffleDeck
+    //|> newGame
+    //|> oneGame interactivePlayerStrategy
+    //|> printfn "%A"
+
+    let deck = [{suit = Hearts; kind = 5}; {suit = Clubs; kind = 13};
+                {suit = Spades; kind = 5}; {suit = Clubs; kind = 13};
+                {suit = Clubs; kind = 1}]
+    deck |> newGame |> oneGame interactivePlayerStrategy |> printfn "%A"
 
     //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
 
