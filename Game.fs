@@ -297,9 +297,10 @@ let playerOutcome playerHand dealerHand =
     let playerTotal = handTotal playerHand
     let dealerTotal = handTotal dealerHand
 
-    if (playerTotal > dealerTotal) && (playerTotal <= 21 || dealerTotal > 21) then
+    if playerTotal <= 21 && (dealerTotal < playerTotal || dealerTotal > 21) then
         Win
-    else if (dealerTotal > playerTotal) && dealerTotal <= 21 then
+    //else if dealerTotal <= 21 || playerTotal > 21 then
+    else if dealerTotal <= 21 && (playerTotal < dealerTotal || playerTotal > 21) then
         Lose
     else
         Draw
@@ -376,13 +377,9 @@ let manyGames n playerStrategy =
     let dWins = List.reduce (+) (List.map (fun g -> g.dealerWins) gameLogs)
     let d = List.reduce (+) (List.map (fun g -> g.draws) gameLogs)
 
-    printfn "IN MANY GAMES"
-    printfn "%O %O %O" pWins dWins d
-
     // TODO: this is a "blank" GameLog. Return something more appropriate.
     {playerWins = pWins; dealerWins = dWins; draws = d}
-            
-
+           
         
 // PLAYER STRATEGIES
 // Returns a list of legal player actions given their current hand.
@@ -429,10 +426,47 @@ let rec interactivePlayerStrategy gameState =
            interactivePlayerStrategy gameState
 
 
+// This strategy makes the player always stand.
+let inactivePlayerStrategy gameState = 
+    let playerHand = gameState.player.activeHands.Head
+    let legalActions = legalPlayerActions playerHand.cards
+
+    if List.contains Stand legalActions then 
+        Stand
+    else
+        Stand
+   
+   
+// This strategy makes the player always hit.
+let greedyPlayerStrategy gameState = 
+    let playerHand = gameState.player.activeHands.Head
+    let legalActions = legalPlayerActions playerHand.cards
+    
+    if List.contains Hit legalActions then Hit else Stand
+    
+ 
+// This strategy makes the player always hit.
+let coinFlipPlayerStrategy gameState = 
+    let playerHand = gameState.player.activeHands.Head
+    let legalActions = legalPlayerActions playerHand.cards
+
+    if List.contains Hit legalActions && List.contains Stand legalActions then 
+        let coinFace = rand.Next(2)
+
+        printfn "RANDOM: %A" coinFace
+
+        if coinFace = 0 then
+            Hit
+        else 
+            Stand
+    else
+        Stand
+
+
 [<EntryPoint>]
 let main argv =
     // TODO: call manyGames to run 1000 games with a particular strategy.
-    manyGames 5 interactivePlayerStrategy
+    manyGames 1000 coinFlipPlayerStrategy
     |> printfn "%A"
 
     //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
