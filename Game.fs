@@ -1,4 +1,4 @@
-﻿/// Card representations.
+/// Card representations.
 // An "enum"-type union for card suit.
 type CardSuit = 
     | Spades 
