@@ -1,4 +1,4 @@
-﻿/// Card representations.
+/// Card representations.
 // An "enum"-type union for card suit.
 type CardSuit = 
     | Spades 
@@ -313,7 +313,6 @@ let oneGame playerStrategy gameState =
     let score1 = handTotal gameState.dealer
     let score2 = handTotal gameState.player.activeHands.Head.cards
 
-    
     let wins = 0
     let losses = 0
     let draws = 0
@@ -337,14 +336,15 @@ let oneGame playerStrategy gameState =
         // win, loss, or draw. Accumulate (!!) the sum total of wins, losses, and draws, accounting for doubled-down
         // hands, which gets 2 wins, 2 losses, or 1 draw
         let rec oneGame' gameState wins losses draws =
-            if gameState.player.activeHands.IsEmpty then
+            if not gameState.player.activeHands.IsEmpty then
                 let outcome = playerOutcome (gameState.player.activeHands.Head.cards) gameState.dealer
                 let increment =
                     if gameState.player.activeHands.Head.doubled = false then
                         1
                     else
                         2
-
+                
+                printfn "RESULT: %A" outcome
                 match outcome with
                 | Win -> oneGame' (moveActiveHand gameState) (wins + increment) losses draws
                 | Lose -> oneGame' (moveActiveHand gameState) wins (losses + increment) draws
@@ -370,9 +370,17 @@ let manyGames n playerStrategy =
     // TODO: run oneGame with the playerStrategy n times, and accumulate the result. 
     // If you're slick, you won't do any recursion yourself. Instead read about List.init, 
     // and then consider List.reduce.
+    let gameLogs = List.init n (fun g -> makeDeck() |> shuffleDeck |> newGame |> oneGame playerStrategy)
+
+    let pWins = List.reduce (+) (List.map (fun g -> g.playerWins) gameLogs)
+    let dWins = List.reduce (+) (List.map (fun g -> g.dealerWins) gameLogs)
+    let d = List.reduce (+) (List.map (fun g -> g.draws) gameLogs)
+
+    printfn "IN MANY GAMES"
+    printfn "%O %O %O" pWins dWins d
 
     // TODO: this is a "blank" GameLog. Return something more appropriate.
-    {playerWins = 0; dealerWins = 0; draws = 0}
+    {playerWins = pWins; dealerWins = dWins; draws = d}
             
 
         
@@ -424,8 +432,9 @@ let rec interactivePlayerStrategy gameState =
 [<EntryPoint>]
 let main argv =
     // TODO: call manyGames to run 1000 games with a particular strategy.
-    let newDeck = makeDeck()
+    manyGames 5 interactivePlayerStrategy
+    |> printfn "%A"
 
-    printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
+    //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
 
     0 // return an integer exit code
