@@ -275,7 +275,16 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
 
         match playerAction with
         |Hit -> gameState |> hit Player |> playerTurn playerStrategy
-        |DoubleDown -> playerTurn playerStrategy gameState
+        |DoubleDown -> 
+            let updatedActiveHand = {playerState.activeHands.Head with
+                                        cards = playerState.activeHands.Head.cards
+                                        doubled = true }
+            let updatedPlayerHands = {playerState with
+                                        activeHands = updatedActiveHand :: playerState.activeHands.Tail
+                                        finishedHands = playerState.finishedHands }
+            
+            playerTurn playerStrategy {gameState with 
+                                            player = updatedPlayerHands }
         |Split ->  playerTurn playerStrategy gameState
         |_ -> gameState
 
@@ -466,7 +475,13 @@ let coinFlipPlayerStrategy gameState =
 [<EntryPoint>]
 let main argv =
     // TODO: call manyGames to run 1000 games with a particular strategy.
-    manyGames 1000 coinFlipPlayerStrategy
+    //manyGames 10 coinFlipPlayerStrategy
+    //|> printfn "%A"
+
+    makeDeck()
+    |> shuffleDeck
+    |> newGame
+    |> oneGame interactivePlayerStrategy
     |> printfn "%A"
 
     //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
