@@ -548,17 +548,4 @@ let main argv =
     manyGames 1000 basicPlayerStrategy
     |> printfn "%A"
 
-    //makeDeck()
-    //|> shuffleDeck
-    //|> newGame
-    //|> oneGame interactivePlayerStrategy
-    //|> printfn "%A"
-
-    //let deck = [{suit = Hearts; kind = 5}; {suit = Clubs; kind = 13};
-    //            {suit = Spades; kind = 5}; {suit = Clubs; kind = 13};
-    //            {suit = Clubs; kind = 1}]
-    //deck |> newGame |> oneGame basicPlayerStrategy |> printfn "%A"
-
-    //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
-
     0 // return an integer exit code
