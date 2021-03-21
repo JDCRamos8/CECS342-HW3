@@ -297,8 +297,12 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
                 {playerState.activeHands.Head with
                                               cards = playerState.activeHands.Head.cards.Tail.Head :: [] }
 
+            let otherCards =
+                {playerState.activeHands.Head with
+                                              cards = playerState.activeHands.Head.cards.Tail }
+
             let updatedPlayerHands = {playerState with
-                                                  activeHands = playerHand1 :: playerHand2 :: playerState.activeHands.Tail
+                                                  activeHands = playerHand1 :: playerHand2 :: otherCards :: playerState.activeHands.Tail
                                                   finishedHands = playerState.finishedHands }
 
             playerTurn playerStrategy {gameState with 
@@ -372,7 +376,6 @@ let oneGame playerStrategy gameState =
                     else
                         2
                 
-                printfn "RESULT: %A" outcome
                 match outcome with
                 | Win -> oneGame' (playerTurn playerStrategy (moveActiveHand gameState)) (wins + increment) losses draws
                 | Lose -> oneGame' (playerTurn playerStrategy (moveActiveHand gameState)) wins (losses + increment) draws
@@ -480,8 +483,6 @@ let coinFlipPlayerStrategy gameState =
     if List.contains Hit legalActions && List.contains Stand legalActions then 
         let coinFace = rand.Next(2)
 
-        printfn "RANDOM: %A" coinFace
-
         if coinFace = 0 then
             Hit
         else 
@@ -490,11 +491,62 @@ let coinFlipPlayerStrategy gameState =
         Stand
 
 
+// This strategy makes the player do specific PlayerActions on basic conditions.
+let basicPlayerStrategy gameState = 
+    let playerHand = gameState.player.activeHands.Head
+    let legalActions = legalPlayerActions playerHand.cards
+
+    let playerScore = handTotal playerHand.cards
+    let dealerFirstCard = cardValue gameState.dealer.Head
+
+    // DoubleDown
+    if playerHand.doubled = false && (playerScore = 11 || playerScore = 10 || playerScore = 9) then
+        if (playerScore = 10 && (dealerFirstCard = 10 || dealerFirstCard = 11) && not (cardValue playerHand.cards.Head = 5 && cardValue playerHand.cards.Tail.Head = 5)) then          
+            Hit
+        else if (playerScore = 9 && (dealerFirstCard = 2 || dealerFirstCard >= 7)) then 
+            Hit
+        else if cardValue playerHand.cards.Head = 5 && cardValue playerHand.cards.Tail.Head = 5 then
+            DoubleDown
+        else
+            DoubleDown
+
+    // Split
+    elif not(playerHand.cards.Length = 1 || playerHand.cards.Length = 3 || cardValue playerHand.cards.Head = 5 && cardValue playerHand.cards.Tail.Head = 5) && playerHand.cards.Head.kind = playerHand.cards.Tail.Head.kind then
+        if playerScore = 20 then
+            Stand
+        else 
+            Split
+
+    // Otherwise...
+    else
+        if dealerFirstCard >= 2 && dealerFirstCard <= 6 then
+            if playerScore >= 12 then
+                Stand
+            else
+                Hit
+
+        else if dealerFirstCard >= 7 && dealerFirstCard <= 10 then
+            if playerScore <= 16 then
+                Hit
+            else
+                Stand
+
+        else if (dealerFirstCard = 11) then
+            if (playerScore <= 16 && (cardValue playerHand.cards.Head = 11 || handTotal playerHand.cards.Tail = 11)) then // At least one Ace
+                Hit
+            else if playerScore <= 11 then
+                Hit
+            else
+                Stand
+        else 
+            Stand
+
+
 [<EntryPoint>]
 let main argv =
     // TODO: call manyGames to run 1000 games with a particular strategy.
-    //manyGames 10 coinFlipPlayerStrategy
-    //|> printfn "%A"
+    manyGames 1000 basicPlayerStrategy
+    |> printfn "%A"
 
     //makeDeck()
     //|> shuffleDeck
@@ -502,10 +554,10 @@ let main argv =
     //|> oneGame interactivePlayerStrategy
     //|> printfn "%A"
 
-    let deck = [{suit = Hearts; kind = 5}; {suit = Clubs; kind = 13};
-                {suit = Spades; kind = 5}; {suit = Clubs; kind = 13};
-                {suit = Clubs; kind = 1}]
-    deck |> newGame |> oneGame interactivePlayerStrategy |> printfn "%A"
+    //let deck = [{suit = Hearts; kind = 5}; {suit = Clubs; kind = 13};
+    //            {suit = Spades; kind = 5}; {suit = Clubs; kind = 13};
+    //            {suit = Clubs; kind = 1}]
+    //deck |> newGame |> oneGame basicPlayerStrategy |> printfn "%A"
 
     //printf "%A, Value: %A" (cardToString(newDeck.Head)) (cardValue(newDeck.Head))
 
