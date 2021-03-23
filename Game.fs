@@ -66,7 +66,6 @@ let cardToString card =
     // TODO: replace the following line with logic that converts the card's kind to a string.
     // Reminder: a 1 means "Ace", 11 means "Jack", 12 means "Queen", 13 means "King".
     // A "match" statement will be necessary. (The next function below is a hint.)
-    // DONE
     let kind = 
        match card.kind with
        |1 -> "Ace"
@@ -95,7 +94,6 @@ let handToString hand =
     // The string consists of the results of cardToString when called on each Card in the hand (a Card list),
     // separated by commas. You need to build this string yourself; the built-in "toString" methods for lists
     // insert semicolons and square brackets that I do not want.
-    // DONE
     hand
     |> List.map (cardToString) |> String.concat ", "
 
@@ -123,12 +121,10 @@ let cardValue card =
 let handTotal hand =
     // TODO: modify the next line to calculate the sum of the card values of each
     // card in the list. Hint: List.map and List.sum. (Or, if you're slick, List.sumBy)
-    // DONE
     let sum = List.sumBy cardValue hand
 
     // TODO: modify the next line to count the number of aces in the hand.
     // Hint: List.filter and List.length.
-    // DONE
     let numAces = List.length(List.filter (fun c -> c.kind = 1) hand)
 
     // Adjust the sum if it exceeds 21 and there are aces.
@@ -208,7 +204,6 @@ let hit handOwner gameState =
         // Then construct the new game state with the updated deck and updated player.
 
         // TODO: this is just so the code compiles; fix it.
-        // DONE
         let newFirstHand = { cards = topCard :: gameState.player.activeHands.Head.cards
                              doubled = gameState.player.activeHands.Head.doubled }
         let updatedPlayer = { activeHands = newFirstHand :: gameState.player.activeHands.Tail 
@@ -297,12 +292,8 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
                 {playerState.activeHands.Head with
                                               cards = playerState.activeHands.Head.cards.Tail.Head :: [] }
 
-            let otherCards =
-                {playerState.activeHands.Head with
-                                              cards = playerState.activeHands.Head.cards.Tail }
-
             let updatedPlayerHands = {playerState with
-                                                  activeHands = playerHand1 :: playerHand2 :: otherCards :: playerState.activeHands.Tail
+                                                  activeHands = playerHand1 :: playerHand2 ::  playerState.activeHands.Tail
                                                   finishedHands = playerState.finishedHands }
 
             playerTurn playerStrategy {gameState with 
@@ -494,8 +485,6 @@ let coinFlipPlayerStrategy gameState =
 // This strategy makes the player do specific PlayerActions on basic conditions.
 let basicPlayerStrategy gameState = 
     let playerHand = gameState.player.activeHands.Head
-    let legalActions = legalPlayerActions playerHand.cards
-
     let playerScore = handTotal playerHand.cards
     let dealerFirstCard = cardValue gameState.dealer.Head
 
@@ -511,7 +500,7 @@ let basicPlayerStrategy gameState =
             DoubleDown
 
     // Split
-    elif not(playerHand.cards.Length = 1 || playerHand.cards.Length = 3 || cardValue playerHand.cards.Head = 5 && cardValue playerHand.cards.Tail.Head = 5) && playerHand.cards.Head.kind = playerHand.cards.Tail.Head.kind then
+    elif playerHand.cards.Length = 2 && not(cardValue playerHand.cards.Head = 5 && cardValue playerHand.cards.Tail.Head = 5) && playerHand.cards.Head.kind = playerHand.cards.Tail.Head.kind then
         if playerScore = 20 then
             Stand
         else 
