@@ -269,37 +269,45 @@ let rec playerTurn (playerStrategy : GameState->PlayerAction) (gameState : GameS
         
         printfn "Player's hand: %s; %d points" (handToString player) score
 
-        let playerAction = playerStrategy gameState
+        if score > 21 then
+            printfn "Player busts!"
+            gameState
+        else
+            let playerAction = playerStrategy gameState
 
-        match playerAction with
-        |Hit -> gameState |> hit Player |> playerTurn playerStrategy
-        |DoubleDown -> 
-            let updatedActiveHand = {playerState.activeHands.Head with
-                                                                  cards = playerState.activeHands.Head.cards
-                                                                  doubled = true }
-            let updatedPlayerHands = {playerState with
-                                                  activeHands = updatedActiveHand :: playerState.activeHands.Tail
-                                                  finishedHands = playerState.finishedHands }
+            match playerAction with
+            |Hit -> printfn "Player hits"
+                    gameState |> hit Player |> playerTurn playerStrategy
+            |DoubleDown -> 
+                printfn "Player double downs"
+                let updatedActiveHand = {playerState.activeHands.Head with
+                                                                      cards = playerState.activeHands.Head.cards
+                                                                      doubled = true }
+                let updatedPlayerHands = {playerState with
+                                                      activeHands = updatedActiveHand :: playerState.activeHands.Tail
+                                                      finishedHands = playerState.finishedHands }
             
-            playerTurn playerStrategy {gameState with 
-                                                 player = updatedPlayerHands }
-        |Split -> 
-            let playerHand1 =
-                {playerState.activeHands.Head with
-                                              cards = playerState.activeHands.Head.cards.Head :: [] }
+                playerTurn playerStrategy {gameState with 
+                                                     player = updatedPlayerHands }
+            |Split -> 
+                printfn "Player splits"
+                let playerHand1 =
+                    {playerState.activeHands.Head with
+                                                  cards = playerState.activeHands.Head.cards.Head :: [] }
 
-            let playerHand2 =
-                {playerState.activeHands.Head with
-                                              cards = playerState.activeHands.Head.cards.Tail.Head :: [] }
+                let playerHand2 =
+                    {playerState.activeHands.Head with
+                                                  cards = playerState.activeHands.Head.cards.Tail.Head :: [] }
 
-            let updatedPlayerHands = {playerState with
-                                                  activeHands = playerHand1 :: playerHand2 ::  playerState.activeHands.Tail
-                                                  finishedHands = playerState.finishedHands }
+                let updatedPlayerHands = {playerState with
+                                                      activeHands = playerHand1 :: playerHand2 ::  playerState.activeHands.Tail
+                                                      finishedHands = playerState.finishedHands }
 
-            playerTurn playerStrategy {gameState with 
-                                                 player = updatedPlayerHands }
+                playerTurn playerStrategy {gameState with 
+                                                     player = updatedPlayerHands }
 
-        |_ -> gameState
+            |_ -> printfn "Player must stay"
+                  gameState
 
 
 // Moves the player's first active hand to their inactive hands and returns a new gamestate.
